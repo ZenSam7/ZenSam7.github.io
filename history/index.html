@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Календарный Калькулятор</title>
+    <style>
+        :root {
+            --bg: #f4f1ea; --card: #fffcf5; --text: #333; --border: #d1c7ac;
+            --accent-old: #8b4513; --accent-mod: #2e5a88;
+        }
+        [data-theme="dark"] {
+            --bg: #1e252b; --card: #2d3a45; --text: #d1d9e1; --border: #3e4c59;
+            --accent-old: #a1887f; --accent-mod: #64b5f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            margin: 0;
+            transition: background 0.3s;
+        }
+
+        .header-tools {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+            background: var(--card);
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+
+        .container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            max-width: 950px;
+        }
+
+        .card {
+            background: var(--card);
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            width: 340px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center; font-size: 1.1rem; margin: 0 0 15px 0; text-transform: uppercase;
+        }
+
+        .row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; font-size: 0.85rem;
+        }
+
+        select, input {
+            background: var(--bg); color: var(--text);
+            border: 1px solid var(--border); padding: 3px; font-size: 0.85rem;
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-top: 10px; }
+
+        .grid div { text-align: center; font-size: 0.8rem; padding: 5px 0; }
+
+        .day-head { font-weight: bold; color: #888; }
+        .day { cursor: pointer; border: 1px solid transparent; }
+        .day:hover { border-color: var(--border); }
+
+        .day.selected { color: white; font-weight: bold; }
+        .old-style .day.selected { background: var(--accent-old) !important; }
+        .modern-style .day.selected { background: var(--accent-mod) !important; }
+
+        .day.weekend { color: #d9534f; }
+        .day.empty { cursor: default; }
+
+        .equal-sign { font-size: 2rem; font-weight: bold; color: var(--border); }
+
+        .footer-info {
+            margin-top: 10px; font-size: 0.8rem;
+            border-top: 1px dashed var(--border); padding-top: 8px; text-align: center;
+        }
+
+        .am-year-badge {
+            display: inline-block;
+            margin-top: 5px;
+            font-size: 0.78rem;
+            color: var(--accent-old);
+            background: rgba(139,69,19,0.08);
+            border: 1px dashed var(--accent-old);
+            border-radius: 4px;
+            padding: 2px 8px;
+        }
+        [data-theme="dark"] .am-year-badge {
+            color: var(--accent-old);
+            background: rgba(161,136,127,0.1);
+        }
+
+        .validator { font-size: 0.75rem; color: #d9534f; margin-top: 5px; font-weight: bold; }
+
+        .global-stats {
+            margin-top: 20px; border-top: 2px solid var(--text);
+            width: 100%; max-width: 700px; text-align: center; padding-top: 10px;
+            font-weight: bold; font-size: 0.95rem;
+        }
+
+        @media (max-width: 720px) {
+            body { padding: 4px 4px; }
+
+            .header-tools {
+                flex-wrap: wrap;
+                gap: 6px 12px;
+                padding: 5px 12px;
+                justify-content: center;
+                font-size: 0.78rem;
+                margin-bottom: 6px;
+            }
+
+            .container {
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                width: 100%;
+            }
+
+            .card {
+                width: calc(100vw - 12px);
+                max-width: 440px;
+                box-sizing: border-box;
+                padding: 8px 10px;
+            }
+
+            .card h2 {
+                font-size: 0.82rem;
+                margin: 0 0 6px 0;
+            }
+
+            .row {
+                margin-bottom: 4px;
+                font-size: 0.76rem;
+            }
+
+            select, input {
+                font-size: 0.76rem;
+                padding: 2px;
+            }
+
+            .grid {
+                margin-top: 5px;
+                gap: 1px;
+            }
+
+            .grid div {
+                font-size: 0.72rem;
+                padding: 3px 0;
+            }
+
+            .footer-info {
+                margin-top: 5px;
+                padding-top: 5px;
+                font-size: 0.72rem;
+            }
+
+            .equal-sign {
+                font-size: 1rem;
+                transform: rotate(90deg);
+                display: block;
+                line-height: 1;
+                margin: 0;
+            }
+
+            .global-stats {
+                max-width: 100%;
+                font-size: 0.78rem;
+                margin-top: 8px;
+                padding-top: 6px;
+            }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div class="header-tools">
+        <div>Язык: <select id="langSel" onchange="updateAll()"></select></div>
+        <div>Тема:
+            <select id="themeSel" onchange="document.body.setAttribute('data-theme', this.value)">
+                <option value="light">Светлая</option>
+                <option value="dark" selected>Тёмная</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- ЛЕВЫЙ КАЛЕНДАРЬ — От сотворения мира (Юлианский) -->
+        <div class="card old-style">
+            <h2>От сотворения мира</h2>
+            <div class="row">
+                <span>Стиль:</span>
+                <select id="oldStyle" onchange="updateAll()">
+                    <option value="sept" selected>Сентябрьский</option>
+                    <option value="jan">Январский</option>
+                    <option value="march">Мартовский</option>
+                    <option value="ultra">Ультрамартовский</option>
+                    <option value="circa">Цирка-мартовский</option>
+                    <option value="circaultra">Цирка-ультра-март.</option>
+                </select>
+            </div>
+            <div class="row">
+                <span>От Сотворения мира до Р.Х.:</span>
+                <input type="number" id="baseOffset" value="5508" style="width:55px" oninput="updateAll()">
+            </div>
+            <div id="circaRow" class="row" style="display:none">
+                <span>Начало (число марта):</span>
+                <input type="number" id="circaDay" value="1" min="1" max="31" style="width:50px" oninput="updateAll()">
+            </div>
+            <div class="row">
+                <select id="oldMonth" onchange="syncFromOld()"></select>
+                <input type="number" id="oldYear" value="7534" style="width:70px" oninput="syncFromOld()">
+            </div>
+            <div class="grid" id="oldGrid"></div>
+            <div class="footer-info">
+                <div id="oldFullDateDesc" style="font-weight:bold;">--</div>
+            </div>
+        </div>
+
+        <div class="equal-sign">≈</div>
+
+        <!-- ПРАВЫЙ КАЛЕНДАРЬ — Современный (Григорианский/Юлианский) -->
+        <div class="card modern-style">
+            <h2>Современный</h2>
+            <div class="row">
+                <span>Календарь:</span>
+                <select id="modType" onchange="updateAll()">
+                    <option value="gregorian" selected>Григорианский</option>
+                    <option value="julian">Юлианский</option>
+                </select>
+            </div>
+            <div class="row">
+                <select id="modMonth" onchange="syncFromMod()"></select>
+                <input type="number" id="modYear" value="2026" style="width:70px" oninput="syncFromMod()">
+            </div>
+            <div class="grid" id="modGrid"></div>
+
+            <div class="footer-info">
+                <div id="fullDateDesc" style="font-weight:bold; margin-bottom:5px;">--</div>
+                <div id="easterBox">Пасха: --</div>
+                <div id="validator" class="validator"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="global-stats" id="globalStats">
+        Век: -- | Индикт: --
+    </div>
+
+    <script>
+        const i18n = {
+            ru: {
+                months: ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
+                days: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"],
+                weekLong: ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"],
+                easter: "Пасха: "
+            },
+            old: {
+                months: ["Просинец","Сечень","Сухий","Березозол","Травень","Изок","Червень","Зарев","Рюень","Листопад","Грудень","Студень"],
+                days: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"],
+                weekLong: ["Неделя","Понедельник","Вторник","Среда","Четверг","Пяток","Суббота"],
+                easter: "Пасха святая: "
+            },
+            ukr: {
+                months: ["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"],
+                days: ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"],
+                weekLong: ["Неділя","Понеділок","Вівторок","Середа","Четвер","П'ятниця","Субота"],
+                easter: "Великдень: "
+            }
+        };
+
+        // new Date(20, m, d) в JS выдаёт 1920 год. makeDate + setFullYear решает это.
+        function makeDate(y, m, d) {
+            const dt = new Date(y, m, d);
+            dt.setFullYear(y);
+            return dt;
+        }
+
+        let curDate = makeDate(2026, 4, 10);
+
+        // Пока поле активно — updateAll() не перетирает его значение.
+        let activeYearInput = null; // 'old' | 'mod' | null
+
+        function getLoc() { return i18n[document.getElementById('langSel').value || 'ru']; }
+
+        function getGregOffset(y) {
+            if (y < 1582) return 0;
+            const c = Math.floor(y / 100);
+            return c - Math.floor(c / 4) - 2;
+        }
+
+        function getOrthodoxEaster(y) {
+            const g = y % 19;
+            const i = (19 * g + 15) % 30;
+            const j = (y + Math.floor(y / 4) + i) % 7;
+            const l = i - j;
+            const month = 3 + Math.floor((l + 40) / 44);
+            const day = l + 28 - 31 * Math.floor(month / 4);
+            return { d: day, m: month - 1 };
+        }
+
+        // Юлианский год + месяц + день → год от сотворения мира
+        function julianToAM(y, m, d, style, offset, circaDay) {
+            let amY = y + offset;
+            switch (style) {
+                case 'sept':       if (m >= 8) amY++; break;
+                case 'jan':        break;
+                case 'march':      if (m < 2) amY--; break;
+                case 'ultra':      if (m >= 2) amY++; break;
+                case 'circa':
+                    if (m < 2) amY--;
+                    else if (m === 2 && d < circaDay) amY--;
+                    break;
+                case 'circaultra':
+                    if (m > 2) amY++;
+                    else if (m === 2 && d >= circaDay) amY++;
+                    break;
+            }
+            return amY;
+        }
+
+        // Год от сотворения мира + месяц → юлианский год (обратное)
+        function amToJulianYear(amY, m, style, offset) {
+            let y = amY - offset;
+            switch (style) {
+                case 'sept':       if (m >= 8) y--; break;
+                case 'jan':        break;
+                case 'march':      if (m < 2) y++; break;
+                case 'ultra':      if (m >= 2) y--; break;
+                case 'circa':      if (m < 2) y++; break;
+                case 'circaultra': if (m >= 2) y--; break;
+            }
+            return y;
+        }
+
+        // ─── Синхронизация из ЛЕВОГО календаря (от с.м.) ───
+        function syncFromOld() {
+            const yearVal = document.getElementById('oldYear').value;
+            if (yearVal === '' || isNaN(yearVal)) return;
+
+            const amY    = parseInt(yearVal);
+            const m      = parseInt(document.getElementById('oldMonth').value);
+            const style  = document.getElementById('oldStyle').value;
+            const offset = parseInt(document.getElementById('baseOffset').value) || 0;
+
+            const julY = amToJulianYear(amY, m, style, offset);
+            curDate = makeDate(julY, m, curDate.getDate());
+            updateAll();
+        }
+
+        // ─── Синхронизация из ПРАВОГО календаря (григ./юл.) ───
+        function syncFromMod() {
+            const yearVal = document.getElementById('modYear').value;
+            if (yearVal === '' || isNaN(yearVal)) return;
+
+            const adY    = parseInt(yearVal);
+            const m      = parseInt(document.getElementById('modMonth').value);
+            const isGreg = document.getElementById('modType').value === 'gregorian';
+
+            if (isGreg) {
+                const off = getGregOffset(adY);
+                // Григорианская → Юлианская (вычитаем смещение чтобы получить юлианский день)
+                curDate = makeDate(adY, m, curDate.getDate() - off);
+            } else {
+                curDate = makeDate(adY, m, curDate.getDate());
+            }
+            updateAll();
+        }
+
+        function updateAll() {
+            const loc    = getLoc();
+            const y      = curDate.getFullYear();
+            const m      = curDate.getMonth();
+            const d      = curDate.getDate();
+            const style  = document.getElementById('oldStyle').value;
+            const offset = parseInt(document.getElementById('baseOffset').value) || 0;
+            const cDay   = parseInt(document.getElementById('circaDay').value) || 1;
+            const isGreg = document.getElementById('modType').value === 'gregorian';
+
+            // Показываем/скрываем строку "Начало марта" для цирка-стилей
+            document.getElementById('circaRow').style.display =
+                (style === 'circa' || style === 'circaultra') ? 'flex' : 'none';
+
+            // Пересобираем выпадающие списки месяцев с правильными названиями
+            function rebuildMonthSel(id) {
+                const sel = document.getElementById(id);
+                const cur = parseInt(sel.value);
+                sel.innerHTML = '';
+                loc.months.forEach((name, i) => sel.options[i] = new Option(name, i));
+                sel.value = isNaN(cur) ? 0 : cur;
+            }
+            rebuildMonthSel('oldMonth');
+            rebuildMonthSel('modMonth');
+
+            const amY = julianToAM(y, m, d, style, offset, cDay);
+
+            // ─── обновляем ЛЕВЫЙ год (если пользователь не печатает в нём) ───
+            if (activeYearInput !== 'old') {
+                document.getElementById('oldYear').value = amY;
+            }
+            document.getElementById('oldMonth').value = m;
+
+            // Левый футер: юлианская дата + год от с.м.
+            const oldDOW = makeDate(y, m, d).getDay();
+            document.getElementById('oldFullDateDesc').innerText =
+                `${d} ${loc.months[m]} ${amY} г., ${loc.weekLong[oldDOW]}`;
+
+            // Конвертация в Григорианский/Юлианский для правого календаря
+            let dy = y, dm = m, dd = d;
+            if (isGreg) {
+                const off = getGregOffset(y);
+                const gd  = makeDate(y, m, d + off);
+                dy = gd.getFullYear();
+                dm = gd.getMonth();
+                dd = gd.getDate();
+            }
+
+            // ─── обновляем ПРАВЫЙ год (если пользователь не печатает в нём) ───
+            if (activeYearInput !== 'mod') {
+                document.getElementById('modYear').value = dy;
+            }
+            document.getElementById('modMonth').value = dm;
+
+            // Правый футер
+            const modDOW = makeDate(dy, dm, dd).getDay();
+            document.getElementById('fullDateDesc').innerText =
+                `${dd} ${loc.months[dm]} ${dy} г., ${loc.weekLong[modDOW]}`;
+
+            // Рендер сеток
+            renderGrid('oldGrid', y,  m,  d,  false);
+            renderGrid('modGrid', dy, dm, dd, true);
+
+            // Пасха (по Александрийской пасхалии, от юлианского года)
+            const east = getOrthodoxEaster(y);
+            let eD = east.d, eM = east.m, eY = y;
+            if (isGreg) {
+                const off = getGregOffset(y);
+                const eg  = makeDate(y, east.m, east.d + off);
+                eD = eg.getDate(); eM = eg.getMonth(); eY = eg.getFullYear();
+            }
+            document.getElementById('easterBox').innerText =
+                loc.easter + eD + ' ' + loc.months[eM] + (eY !== dy ? ' ' + eY : '');
+
+            // Предупреждение
+            document.getElementById('validator').innerText =
+                (dy < 1582 && isGreg) ? '⚠️ Григорианский стиль ещё не введён' : '';
+
+            // Индикт (от AM года) и век
+            const ind  = (amY % 15 === 0) ? 15 : (amY % 15);
+            const cent = dy > 0 ? Math.ceil(dy / 100) : Math.floor(dy / 100);
+            document.getElementById('globalStats').innerText =
+                `Век: ${cent} | Индикт: ${ind}`;
+        }
+
+        function renderGrid(id, y, m, selD, isMod) {
+            const el  = document.getElementById(id);
+            const loc = getLoc();
+            el.innerHTML = '';
+
+            loc.days.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'day-head';
+                div.innerText = name;
+                el.appendChild(div);
+            });
+
+            // makeDate — чтобы первый день месяца тоже считался без JS-бага
+            const first = (makeDate(y, m, 1).getDay() + 6) % 7;
+            const total =  makeDate(y, m + 1, 0).getDate();
+
+            for (let i = 0; i < first; i++) el.appendChild(document.createElement('div'));
+
+            for (let i = 1; i <= total; i++) {
+                const div = document.createElement('div');
+                div.className = 'day' + (i === selD ? ' selected' : '');
+                if ((i + first) % 7 === 0 || (i + first) % 7 === 6) div.classList.add('weekend');
+                div.innerText = i;
+                div.onclick = () => {
+                    if (isMod && document.getElementById('modType').value === 'gregorian') {
+                        curDate = makeDate(y, m, i - getGregOffset(y));
+                    } else {
+                        curDate = makeDate(y, m, i);
+                    }
+                    updateAll();
+                };
+                el.appendChild(div);
+            }
+        }
+
+        // ─── Инициализация ───
+        const lSel = document.getElementById('langSel');
+        Object.keys(i18n).forEach(k =>
+            lSel.options.add(new Option(k==='ru'?'Русский':k==='old'?'Старославянский':'Українська', k))
+        );
+
+        // события focus/blur для полей года — предотвращают перезапись во время ввода
+        const oldYearEl = document.getElementById('oldYear');
+        const modYearEl = document.getElementById('modYear');
+
+        oldYearEl.addEventListener('focus', () => { activeYearInput = 'old'; });
+        oldYearEl.addEventListener('blur',  () => { activeYearInput = null; syncFromOld(); });
+
+        modYearEl.addEventListener('focus', () => { activeYearInput = 'mod'; });
+        modYearEl.addEventListener('blur',  () => { activeYearInput = null; syncFromMod(); });
+
+        updateAll();
+    </script>
+</body>
+</html>
