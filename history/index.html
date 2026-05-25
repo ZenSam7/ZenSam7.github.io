@@ -284,14 +284,20 @@
             }
         };
 
-        // new Date(20, m, d) в JS выдаёт 1920 год. makeDate + setFullYear решает это.
+        // makeDate + setFullYear решает это.
         function makeDate(y, m, d) {
             const dt = new Date(y, m, d);
             dt.setFullYear(y);
             return dt;
         }
 
-        let curDate = makeDate(2026, 4, 10);
+        // Всегда сегодня
+        let today = new Date();
+        let gregY = today.getFullYear();
+        let gregM = today.getMonth();
+        let gregD = today.getDate();
+        let off = getGregOffset(gregY);
+        let curDate = makeDate(gregY, gregM, gregD - off);
 
         // Пока поле активно — updateAll() не перетирает его значение.
         let activeYearInput = null; // 'old' | 'mod' | null
