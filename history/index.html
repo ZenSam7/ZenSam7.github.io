@@ -115,7 +115,6 @@
 
         @media (max-width: 720px) {
             body { padding: 4px 4px; }
-
             .header-tools {
                 flex-wrap: wrap;
                 gap: 6px 12px;
@@ -124,66 +123,26 @@
                 font-size: 0.78rem;
                 margin-bottom: 6px;
             }
-
             .container {
                 flex-direction: column;
                 align-items: center;
                 gap: 4px;
                 width: 100%;
             }
-
             .card {
                 width: calc(100vw - 12px);
                 max-width: 440px;
                 box-sizing: border-box;
                 padding: 8px 10px;
             }
-
-            .card h2 {
-                font-size: 0.82rem;
-                margin: 0 0 6px 0;
-            }
-
-            .row {
-                margin-bottom: 4px;
-                font-size: 0.76rem;
-            }
-
-            select, input {
-                font-size: 0.76rem;
-                padding: 2px;
-            }
-
-            .grid {
-                margin-top: 5px;
-                gap: 1px;
-            }
-
-            .grid div {
-                font-size: 0.72rem;
-                padding: 3px 0;
-            }
-
-            .footer-info {
-                margin-top: 5px;
-                padding-top: 5px;
-                font-size: 0.72rem;
-            }
-
-            .equal-sign {
-                font-size: 1rem;
-                transform: rotate(90deg);
-                display: block;
-                line-height: 1;
-                margin: 0;
-            }
-
-            .global-stats {
-                max-width: 100%;
-                font-size: 0.78rem;
-                margin-top: 8px;
-                padding-top: 6px;
-            }
+            .card h2 { font-size: 0.82rem; margin: 0 0 6px 0; }
+            .row { margin-bottom: 4px; font-size: 0.76rem; }
+            select, input { font-size: 0.76rem; padding: 2px; }
+            .grid { margin-top: 5px; gap: 1px; }
+            .grid div { font-size: 0.72rem; padding: 3px 0; }
+            .footer-info { margin-top: 5px; padding-top: 5px; font-size: 0.72rem; }
+            .equal-sign { font-size: 1rem; transform: rotate(90deg); display: block; line-height: 1; margin: 0; }
+            .global-stats { max-width: 100%; font-size: 0.78rem; margin-top: 8px; padding-top: 6px; }
         }
     </style>
 </head>
@@ -263,6 +222,62 @@
     </div>
 
     <script>
+        // 1. Точный день недели для юлианского календаря (формула Зеллера)
+        function julianDayOfWeek(year, month, day) {
+            // month: 0-11 (январь=0)
+            let y = year;
+            let m = month + 1;
+            if (m <= 2) {
+                y -= 1;
+                m += 12;
+            }
+            const J = Math.floor(y / 100);
+            const K = y % 100;
+            let h = (day + Math.floor(13 * (m + 1) / 5) + K + Math.floor(K / 4) + 5 + J) % 7;
+            // h: 0 = суббота, 1 = воскресенье ... 6 = пятница
+            // преобразуем в формат 0=вс,1=пн,...,6=сб
+            return (h + 1) % 7;
+        }
+
+        // 2. Преобразование юлианской даты в григорианскую (корректное)
+        function julianToGregorian(julYear, julMonth, julDay) {
+            let offset = 0;
+            if (julYear > 1582) {
+                let centuries = Math.floor(julYear / 100);
+                offset = centuries - Math.floor(centuries / 4) - 2;
+            } else if (julYear === 1582 && (julMonth > 9 || (julMonth === 9 && julDay >= 15))) {
+                offset = 10;
+            }
+            let temp = new Date(julYear, julMonth, julDay + offset);
+            temp.setFullYear(julYear);
+            return { year: temp.getFullYear(), month: temp.getMonth(), day: temp.getDate() };
+        }
+
+        // 3. Преобразование григорианской даты в юлианскую
+        function gregorianToJulian(gregYear, gregMonth, gregDay) {
+            let offset = 0;
+            if (gregYear > 1582) {
+                let centuries = Math.floor(gregYear / 100);
+                offset = centuries - Math.floor(centuries / 4) - 2;
+            } else if (gregYear === 1582 && (gregMonth > 9 || (gregMonth === 9 && gregDay >= 15))) {
+                offset = 10;
+            }
+            let temp = new Date(gregYear, gregMonth, gregDay - offset);
+            temp.setFullYear(gregYear);
+            return { year: temp.getFullYear(), month: temp.getMonth(), day: temp.getDate() };
+        }
+
+        // 4. Александрийская пасхалия (возвращает месяц и день по юлианскому календарю)
+        function getOrthodoxEaster(y) {
+            const g = y % 19;
+            const i = (19 * g + 15) % 30;
+            const j = (y + Math.floor(y / 4) + i) % 7;
+            const l = i - j;
+            const month = 3 + Math.floor((l + 40) / 44);
+            const day = l + 28 - 31 * Math.floor(month / 4);
+            return { d: day, m: month - 1 };
+        }
+
         const i18n = {
             ru: {
                 months: ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
@@ -275,52 +290,20 @@
                 days: ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"],
                 weekLong: ["нєдѣ́лѧ","понєдѣ́льникъ","въто́рьникъ","срѣ́да","чєтврь́тъкъ","пѧ́тъкъ","собо́та"],
                 easter: "Великодень: "
-            },
-            // ukr: {
-            //     months: ["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жоврень","Листопад","Грудень"],
-            //     days: ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"],
-            //     weekLong: ["Неділя","Понеділок","Вівторок","Середа","Четвер","П'ятниця","Субота"],
-            //     easter: "Великдень: "
-            // }
+            }
         };
 
-        // makeDate + setFullYear решает это.
         function makeDate(y, m, d) {
             const dt = new Date(y, m, d);
             dt.setFullYear(y);
             return dt;
         }
 
-        // Всегда сегодня
-        let today = new Date();
-        let gregY = today.getFullYear();
-        let gregM = today.getMonth();
-        let gregD = today.getDate();
-        let off = getGregOffset(gregY);
-        let curDate = makeDate(gregY, gregM, gregD - off);
-
-        // Пока поле активно — updateAll() не перетирает его значение.
-        let activeYearInput = null; // 'old' | 'mod' | null
+        let activeYearInput = null;
 
         function getLoc() { return i18n[document.getElementById('langSel').value || 'ru']; }
 
-        function getGregOffset(y) {
-            if (y < 1582) return 0;
-            const c = Math.floor(y / 100);
-            return c - Math.floor(c / 4) - 2;
-        }
-
-        function getOrthodoxEaster(y) {
-            const g = y % 19;
-            const i = (19 * g + 15) % 30;
-            const j = (y + Math.floor(y / 4) + i) % 7;
-            const l = i - j;
-            const month = 3 + Math.floor((l + 40) / 44);
-            const day = l + 28 - 31 * Math.floor(month / 4);
-            return { d: day, m: month - 1 };
-        }
-
-        // Юлианский год + месяц + день → год от сотворения мира
+        // Функции пересчёта AM <-> юлианский год (без изменений, они верны)
         function julianToAM(y, m, d, style, offset, circaDay) {
             let amY = y + offset;
             switch (style) {
@@ -340,7 +323,6 @@
             return amY;
         }
 
-        // Год от сотворения мира + месяц → юлианский год (обратное)
         function amToJulianYear(amY, m, style, offset) {
             let y = amY - offset;
             switch (style) {
@@ -354,126 +336,140 @@
             return y;
         }
 
-        // ─── Синхронизация из ЛЕВОГО календаря (от с.м.) ───
+        // Синхронизация из левого календаря (от С.М.)
         function syncFromOld() {
             const yearVal = document.getElementById('oldYear').value;
             if (yearVal === '' || isNaN(yearVal)) return;
-
             const amY    = parseInt(yearVal);
             const m      = parseInt(document.getElementById('oldMonth').value);
             const style  = document.getElementById('oldStyle').value;
             const offset = parseInt(document.getElementById('baseOffset').value) || 0;
-
-            const julY = amToJulianYear(amY, m, style, offset);
-            curDate = makeDate(julY, m, curDate.getDate());
+            const circaDay = parseInt(document.getElementById('circaDay').value) || 1;
+            const newJulY = amToJulianYear(amY, m, style, offset);
+            // Корректировка дня, если выходит за пределы месяца
+            let maxDay = new Date(newJulY, m + 1, 0).getDate();
+            let newDay = julianDay;
+            if (newDay > maxDay) newDay = maxDay;
+            julianYear = newJulY;
+            julianMonth = m;
+            julianDay = newDay;
             updateAll();
         }
 
-        // ─── Синхронизация из ПРАВОГО календаря (григ./юл.) ───
+        // Синхронизация из правого календаря (григорианский/юлианский)
         function syncFromMod() {
             const yearVal = document.getElementById('modYear').value;
             if (yearVal === '' || isNaN(yearVal)) return;
-
             const adY    = parseInt(yearVal);
             const m      = parseInt(document.getElementById('modMonth').value);
             const isGreg = document.getElementById('modType').value === 'gregorian';
-
+            let newJulY, newJulM, newJulD;
             if (isGreg) {
-                const off = getGregOffset(adY);
-                // Григорианская → Юлианская (вычитаем смещение чтобы получить юлианский день)
-                curDate = makeDate(adY, m, curDate.getDate() - off);
+                const jul = gregorianToJulian(adY, m, julianDay);
+                newJulY = jul.year;
+                newJulM = jul.month;
+                newJulD = jul.day;
             } else {
-                curDate = makeDate(adY, m, curDate.getDate());
+                newJulY = adY;
+                newJulM = m;
+                newJulD = julianDay;
             }
+            // коррекция дня
+            let maxDay = new Date(newJulY, newJulM + 1, 0).getDate();
+            if (newJulD > maxDay) newJulD = maxDay;
+            julianYear = newJulY;
+            julianMonth = newJulM;
+            julianDay = newJulD;
             updateAll();
         }
 
         function updateAll() {
             const loc    = getLoc();
-            const y      = curDate.getFullYear();
-            const m      = curDate.getMonth();
-            const d      = curDate.getDate();
+            const y      = julianYear;
+            const m      = julianMonth;
+            const d      = julianDay;
             const style  = document.getElementById('oldStyle').value;
             const offset = parseInt(document.getElementById('baseOffset').value) || 0;
             const cDay   = parseInt(document.getElementById('circaDay').value) || 1;
             const isGreg = document.getElementById('modType').value === 'gregorian';
 
-            // Показываем/скрываем строку "Начало марта" для цирка-стилей
             document.getElementById('circaRow').style.display =
                 (style === 'circa' || style === 'circaultra') ? 'flex' : 'none';
 
-            // Пересобираем выпадающие списки месяцев с правильными названиями
             function rebuildMonthSel(id) {
                 const sel = document.getElementById(id);
                 const cur = parseInt(sel.value);
                 sel.innerHTML = '';
                 loc.months.forEach((name, i) => sel.options[i] = new Option(name, i));
-                sel.value = isNaN(cur) ? 0 : cur;
+                if (!isNaN(cur)) sel.value = cur;
             }
             rebuildMonthSel('oldMonth');
             rebuildMonthSel('modMonth');
 
             const amY = julianToAM(y, m, d, style, offset, cDay);
 
-            // ─── обновляем ЛЕВЫЙ год (если пользователь не печатает в нём) ───
+            // Левый календарь
             if (activeYearInput !== 'old') {
                 document.getElementById('oldYear').value = amY;
             }
             document.getElementById('oldMonth').value = m;
-
-            // Левый футер: юлианская дата + год от с.м.
-            const oldDOW = makeDate(y, m, d).getDay();
+            const oldDOW = julianDayOfWeek(y, m, d);  // ИСПРАВЛЕНО: юлианский день недели
             document.getElementById('oldFullDateDesc').innerText =
                 `${d} ${loc.months[m]} ${amY} г., ${loc.weekLong[oldDOW]}`;
 
-            // Конвертация в Григорианский/Юлианский для правого календаря
-            let dy = y, dm = m, dd = d;
+            // Правый календарь: преобразование в григорианский или юлианский для отображения
+            let displayYear = y, displayMonth = m, displayDay = d;
+            let displayDOW = oldDOW;
             if (isGreg) {
-                const off = getGregOffset(y);
-                const gd  = makeDate(y, m, d + off);
-                dy = gd.getFullYear();
-                dm = gd.getMonth();
-                dd = gd.getDate();
+                const greg = julianToGregorian(y, m, d);  // ИСПРАВЛЕНО: точное преобразование
+                displayYear = greg.year;
+                displayMonth = greg.month;
+                displayDay = greg.day;
+                displayDOW = new Date(displayYear, displayMonth, displayDay).getDay(); // григорианский день недели
+            } else {
+                displayDOW = julianDayOfWeek(y, m, d);
             }
 
-            // ─── обновляем ПРАВЫЙ год (если пользователь не печатает в нём) ───
             if (activeYearInput !== 'mod') {
-                document.getElementById('modYear').value = dy;
+                document.getElementById('modYear').value = displayYear;
             }
-            document.getElementById('modMonth').value = dm;
-
-            // Правый футер
-            const modDOW = makeDate(dy, dm, dd).getDay();
+            document.getElementById('modMonth').value = displayMonth;
             document.getElementById('fullDateDesc').innerText =
-                `${dd} ${loc.months[dm]} ${dy} г., ${loc.weekLong[modDOW]}`;
+                `${displayDay} ${loc.months[displayMonth]} ${displayYear} г., ${loc.weekLong[displayDOW]}`;
 
             // Рендер сеток
-            renderGrid('oldGrid', y,  m,  d,  false);
-            renderGrid('modGrid', dy, dm, dd, true);
+            renderGrid('oldGrid', y, m, d, false);
+            renderGrid('modGrid', displayYear, displayMonth, displayDay, true, isGreg);
 
-            // Пасха (по Александрийской пасхалии, от юлианского года)
+            // Пасха — только если рассчитанная дата действительно воскресенье (по юлианскому календарю)
             const east = getOrthodoxEaster(y);
             let eD = east.d, eM = east.m, eY = y;
-            if (isGreg) {
-                const off = getGregOffset(y);
-                const eg  = makeDate(y, east.m, east.d + off);
-                eD = eg.getDate(); eM = eg.getMonth(); eY = eg.getFullYear();
+            let isSunday = (julianDayOfWeek(eY, eM, eD) === 0); // 0 = воскресенье
+            if (isSunday) {
+                if (isGreg) {
+                    const gregEast = julianToGregorian(y, east.m, east.d);
+                    eD = gregEast.day;
+                    eM = gregEast.month;
+                    eY = gregEast.year;
+                }
+                let easterYearSuffix = (eY !== displayYear) ? ` ${eY}` : '';
+                document.getElementById('easterBox').innerText = loc.easter + eD + ' ' + loc.months[eM] + easterYearSuffix;
+            } else {
+                document.getElementById('easterBox').innerText = loc.easter + "—"; // дата не воскресенье
             }
-            document.getElementById('easterBox').innerText =
-                loc.easter + eD + ' ' + loc.months[eM] + (eY !== dy ? ' ' + eY : '');
 
             // Предупреждение
             document.getElementById('validator').innerText =
-                (dy < 1582 && isGreg) ? '⚠️ Григорианский стиль ещё не введён' : '';
+                (displayYear < 1582 && isGreg) ? '⚠️ Григорианский стиль ещё не введён' : '';
 
-            // Индикт (от AM года) и век
+            // Индикт и век
             const ind  = (amY % 15 === 0) ? 15 : (amY % 15);
-            const cent = dy > 0 ? Math.ceil(dy / 100) : Math.floor(dy / 100);
+            const cent = displayYear > 0 ? Math.ceil(displayYear / 100) : Math.floor(displayYear / 100);
             document.getElementById('globalStats').innerText =
                 `Век: ${cent} | Индикт: ${ind}`;
         }
 
-        function renderGrid(id, y, m, selD, isMod) {
+        function renderGrid(id, y, m, selD, isMod, isGregorianMode = false) {
             const el  = document.getElementById(id);
             const loc = getLoc();
             el.innerHTML = '';
@@ -485,22 +481,48 @@
                 el.appendChild(div);
             });
 
-            // makeDate — чтобы первый день месяца тоже считался без JS-бага
-            const first = (makeDate(y, m, 1).getDay() + 6) % 7;
-            const total =  makeDate(y, m + 1, 0).getDate();
+            let firstDayOffset;
+            if (isMod && isGregorianMode) {
+                // григорианский календарь
+                const firstDate = new Date(y, m, 1);
+                firstDate.setFullYear(y);
+                let firstDow = firstDate.getDay(); // 0 вс
+                firstDayOffset = (firstDow + 6) % 7;
+            } else {
+                // юлианский (или левый календарь всегда юлианский)
+                let firstDow = julianDayOfWeek(y, m, 1);
+                firstDayOffset = (firstDow + 6) % 7;
+            }
 
-            for (let i = 0; i < first; i++) el.appendChild(document.createElement('div'));
+            const total = new Date(y, m + 1, 0).getDate();
+
+            for (let i = 0; i < firstDayOffset; i++) el.appendChild(document.createElement('div'));
 
             for (let i = 1; i <= total; i++) {
                 const div = document.createElement('div');
                 div.className = 'day' + (i === selD ? ' selected' : '');
-                if ((i + first) % 7 === 0 || (i + first) % 7 === 6) div.classList.add('weekend');
+                let dow;
+                if (isMod && isGregorianMode) {
+                    const gDate = new Date(y, m, i);
+                    gDate.setFullYear(y);
+                    dow = gDate.getDay();
+                } else {
+                    dow = julianDayOfWeek(y, m, i);
+                }
+                if (dow === 0 || dow === 6) div.classList.add('weekend');
                 div.innerText = i;
                 div.onclick = () => {
                     if (isMod && document.getElementById('modType').value === 'gregorian') {
-                        curDate = makeDate(y, m, i - getGregOffset(y));
+                        // Клик по григорианскому календарю -> переводим в юлианскую дату
+                        const jul = gregorianToJulian(y, m, i);
+                        julianYear = jul.year;
+                        julianMonth = jul.month;
+                        julianDay = jul.day;
                     } else {
-                        curDate = makeDate(y, m, i);
+                        // Юлианский режим или левый календарь
+                        julianYear = y;
+                        julianMonth = m;
+                        julianDay = i;
                     }
                     updateAll();
                 };
@@ -514,7 +536,6 @@
             lSel.options.add(new Option(k==='ru'?'Русский':k==='old'?'Старославянский':'Українська', k))
         );
 
-        // события focus/blur для полей года — предотвращают перезапись во время ввода
         const oldYearEl = document.getElementById('oldYear');
         const modYearEl = document.getElementById('modYear');
 
@@ -524,6 +545,13 @@
         modYearEl.addEventListener('focus', () => { activeYearInput = 'mod'; });
         modYearEl.addEventListener('blur',  () => { activeYearInput = null; syncFromMod(); });
 
+
+        // Внутреннее представление — всегда юлианская дата, соответствующая сегодняшнему дню
+        const todayGreg = new Date();
+        const todayJul = gregorianToJulian(todayGreg.getFullYear(), todayGreg.getMonth(), todayGreg.getDate());
+        let julianYear = todayJul.year;
+        let julianMonth = todayJul.month;
+        let julianDay = todayJul.day;
         updateAll();
     </script>
 </body>
