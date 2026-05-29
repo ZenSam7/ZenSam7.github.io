@@ -224,19 +224,12 @@
     <script>
         // 1. Точный день недели для юлианского календаря (формула Зеллера)
         function julianDayOfWeek(year, month, day) {
-            // month: 0-11 (январь=0)
-            let y = year;
-            let m = month + 1;
-            if (m <= 2) {
-                y -= 1;
-                m += 12;
-            }
-            const J = Math.floor(y / 100);
-            const K = y % 100;
-            let h = (day + Math.floor(13 * (m + 1) / 5) + K + Math.floor(K / 4) + 5 + J) % 7;
-            // h: 0 = суббота, 1 = воскресенье ... 6 = пятница
-            // преобразуем в формат 0=вс,1=пн,...,6=сб
-            return (h + 1) % 7;
+            // Вычисление дня недели по юлианскому календарю (0 = воскресенье)
+            let a = Math.floor((14 - (month + 1)) / 12);
+            let y = year + 4800 - a;
+            let m = (month + 1) + 12 * a - 3;
+            let jd = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - 32083;
+            return (jd + 1) % 7;
         }
 
         // 2. Преобразование юлианской даты в григорианскую (корректное)
@@ -441,11 +434,10 @@
             renderGrid('oldGrid', y, m, d, false);
             renderGrid('modGrid', displayYear, displayMonth, displayDay, true, isGreg);
 
-            // Пасха — только если рассчитанная дата действительно воскресенье (по юлианскому календарю)
+            // Пасха — только если рассчитанная дата действительно воскресенье
             const east = getOrthodoxEaster(y);
             let eD = east.d, eM = east.m, eY = y;
-            let isSunday = (julianDayOfWeek(eY, eM, eD) === 0); // 0 = воскресенье
-            if (isSunday) {
+            if (julianDayOfWeek(eY, eM, eD) === 0) { // 0 = воскресенье
                 if (isGreg) {
                     const gregEast = julianToGregorian(y, east.m, east.d);
                     eD = gregEast.day;
@@ -455,7 +447,7 @@
                 let easterYearSuffix = (eY !== displayYear) ? ` ${eY}` : '';
                 document.getElementById('easterBox').innerText = loc.easter + eD + ' ' + loc.months[eM] + easterYearSuffix;
             } else {
-                document.getElementById('easterBox').innerText = loc.easter + "—"; // дата не воскресенье
+                document.getElementById('easterBox').innerText = loc.easter + "— (ошибка формулы для этого года)";
             }
 
             // Предупреждение
