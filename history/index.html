@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Календарный Калькулятор</title>
+    <title>Конкордация календарей</title>
     <style>
         :root {
             --bg: #f4f1ea; --card: #fffcf5; --text: #333; --border: #d1c7ac;
@@ -224,12 +224,18 @@
     <script>
         // 1. Точный день недели для юлианского календаря (формула Зеллера)
         function julianDayOfWeek(year, month, day) {
-            // Вычисление дня недели по юлианскому календарю (0 = воскресенье)
-            let a = Math.floor((14 - (month + 1)) / 12);
-            let y = year + 4800 - a;
-            let m = (month + 1) + 12 * a - 3;
-            let jd = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - 32083;
-            return (jd + 1) % 7;
+            // month: 0-11 (январь=0)
+            let y = year;
+            let m = month + 1;
+            if (m <= 2) {
+                y -= 1;
+                m += 12;
+            }
+            let K = y % 100;
+            let J = Math.floor(y / 100);
+            let h = (day + Math.floor(13 * (m + 1) / 5) + K + Math.floor(K / 4) + 5 + J) % 7;
+            // h: 0=суббота, 1=воскресенье, 2=понедельник, ..., 6=пятница
+            return (h + 1) % 7; // 0=воскресенье, 1=пн, ..., 6=сб
         }
 
         // 2. Преобразование юлианской даты в григорианскую (корректное)
@@ -406,7 +412,7 @@
                 document.getElementById('oldYear').value = amY;
             }
             document.getElementById('oldMonth').value = m;
-            const oldDOW = julianDayOfWeek(y, m, d);  // ИСПРАВЛЕНО: юлианский день недели
+            const oldDOW = julianDayOfWeek(y, m, d);
             document.getElementById('oldFullDateDesc').innerText =
                 `${d} ${loc.months[m]} ${amY} г., ${loc.weekLong[oldDOW]}`;
 
@@ -434,21 +440,66 @@
             renderGrid('oldGrid', y, m, d, false);
             renderGrid('modGrid', displayYear, displayMonth, displayDay, true, isGreg);
 
-            // Пасха — только если рассчитанная дата действительно воскресенье
+            // // Пасха — только если рассчитанная дата действительно воскресенье
+            // const east = getOrthodoxEaster(y);
+            // let eD = east.d, eM = east.m, eY = y;
+            // if (isGreg) {
+            //     const gregEast = julianToGregorian(y, east.m, east.d);
+            //     eD = gregEast.day;
+            //     eM = gregEast.month;
+            //     eY = gregEast.year;
+            // }
+            // let easterYearSuffix = (eY !== displayYear) ? ` ${eY}` : '';
+            // document.getElementById('easterBox').innerText = loc.easter + eD + ' ' + loc.months[eM] + easterYearSuffix;
+                        // Пасха — корректировка до ближайшего воскресенья
             const east = getOrthodoxEaster(y);
             let eD = east.d, eM = east.m, eY = y;
-            if (julianDayOfWeek(eY, eM, eD) === 0) { // 0 = воскресенье
-                if (isGreg) {
-                    const gregEast = julianToGregorian(y, east.m, east.d);
-                    eD = gregEast.day;
-                    eM = gregEast.month;
-                    eY = gregEast.year;
-                }
-                let easterYearSuffix = (eY !== displayYear) ? ` ${eY}` : '';
-                document.getElementById('easterBox').innerText = loc.easter + eD + ' ' + loc.months[eM] + easterYearSuffix;
-            } else {
-                document.getElementById('easterBox').innerText = loc.easter + "— (ошибка формулы для этого года)";
+
+            // Функция для создания юлианской даты (число, месяц, год)
+            function getDateObj(yr, mn, dy) {
+                return { year: yr, month: mn, day: dy };
             }
+
+            // Проверяем день недели полученной даты
+            let dow = julianDayOfWeek(eY, eM, eD);
+            if (dow !== 0) { // не воскресенье
+                // Ищем ближайшее воскресенье (вперёд и назад)
+                let bestOffset = 0;
+                let bestDist = 7;
+                for (let offset = -3; offset <= 3; offset++) {
+                    let testDate = new Date(eY, eM, eD + offset);
+                    let testYear = testDate.getFullYear();
+                    let testMonth = testDate.getMonth();
+                    let testDay = testDate.getDate();
+                    // Проверяем, что дата корректна (не выходит за пределы месяца)
+                    if (testDate.getMonth() !== eM && offset !== 0) continue; // перескок месяца допустим, но проверим
+                    let testDow = julianDayOfWeek(testYear, testMonth, testDay);
+                    if (testDow === 0) {
+                        let dist = Math.abs(offset);
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestOffset = offset;
+                        }
+                    }
+                }
+                if (bestOffset !== 0) {
+                    let corrected = new Date(eY, eM, eD + bestOffset);
+                    eY = corrected.getFullYear();
+                    eM = corrected.getMonth();
+                    eD = corrected.getDate();
+                }
+            }
+
+            // Преобразование в григорианский при необходимости
+            if (isGreg) {
+                const gregEast = julianToGregorian(eY, eM, eD);
+                eD = gregEast.day;
+                eM = gregEast.month;
+                eY = gregEast.year;
+            }
+            let easterYearSuffix = (eY !== displayYear) ? ` ${eY}` : '';
+            document.getElementById('easterBox').innerText = loc.easter + eD + ' ' + loc.months[eM] + easterYearSuffix;
+
 
             // Предупреждение
             document.getElementById('validator').innerText =
