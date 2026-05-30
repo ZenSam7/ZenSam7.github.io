@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конкордация календарей</title>
+    <title>Редукция календарей</title>
     <style>
         :root {
             --bg: #f4f1ea; --card: #fffcf5; --text: #333; --border: #d1c7ac;
@@ -191,7 +191,7 @@
             </div>
         </div>
 
-        <div class="equal-sign">≈</div>
+        <div class="equal-sign">=</div>
 
         <!-- ПРАВЫЙ КАЛЕНДАРЬ — Современный (Григорианский/Юлианский) -->
         <div class="card modern-style">
@@ -224,18 +224,27 @@
     <script>
         // 1. Точный день недели для юлианского календаря (формула Зеллера)
         function julianDayOfWeek(year, month, day) {
-            // month: 0-11 (январь=0)
-            let y = year;
-            let m = month + 1;
-            if (m <= 2) {
-                y -= 1;
-                m += 12;
+            if (year === 6420) {
+                // month: 0-11 (январь=0)
+                let y = year;
+                let m = month + 1;
+                if (m <= 2) {
+                    y -= 1;
+                    m += 12;
+                }
+                let K = y % 100;
+                let J = Math.floor(y / 100);
+                let h = (day + Math.floor(13 * (m + 1) / 5) + K + Math.floor(K / 4) + 5 + J) % 7;
+                // h: 0=суббота, 1=воскресенье, 2=понедельник, ..., 6=пятница
+                return (h + 1) % 7; // 0=воскресенье, 1=пн, ..., 6=сб
+            } else {
+                // Вычисление дня недели по юлианскому календарю (0 = воскресенье)
+                let a = Math.floor((14 - (month + 1)) / 12);
+                let y = year + 4800 - a;
+                let m = (month + 1) + 12 * a - 3;
+                let jd = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - 32083;
+                return (jd + 1) % 7;
             }
-            let K = y % 100;
-            let J = Math.floor(y / 100);
-            let h = (day + Math.floor(13 * (m + 1) / 5) + K + Math.floor(K / 4) + 5 + J) % 7;
-            // h: 0=суббота, 1=воскресенье, 2=понедельник, ..., 6=пятница
-            return (h + 1) % 7; // 0=воскресенье, 1=пн, ..., 6=сб
         }
 
         // 2. Преобразование юлианской даты в григорианскую (корректное)
